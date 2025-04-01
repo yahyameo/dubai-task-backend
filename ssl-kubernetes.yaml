@@ -5,7 +5,7 @@ metadata:
   name: managed-cert-dubai-task-backend
 spec:
   domains:
-    - dubai-task-backend.industronicsadvansystem.com
+    - backend.dubai-task.com
 ---
 apiVersion: v1
 kind: Service
