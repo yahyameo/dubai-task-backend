@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dubai-task-backend-deployment
+  labels:
+    app: dubai-task-backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dubai-task-backend
+  template:
+    metadata:
+      labels:
+        app: dubai-task-backend
+    spec:
+      serviceAccountName: gke-sa
+      containers:
+        - name: dubai-task-backend-container
+          image: asia-southeast1-docker.pkg.dev/GOOGLE_CLOUD_PROJECT/dubai-task-backend/api:COMMIT_SHA
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 60
+          resources:
+            limits:
+              cpu: "2000m"
+              memory: "2048Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dubai-task-backend-service
+spec:
+  selector:
+    app: dubai-task-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer

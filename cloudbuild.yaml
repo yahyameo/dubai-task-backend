@@ -1,0 +1,55 @@
+steps:
+  # Step to retrieve GITHUB_PAT using gcloud
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        gcloud secrets versions access latest --secret=GITHUB_PAT > /workspace/github_pat
+        cat /workspace/github_pat # Debug: Print the GITHUB_PAT value
+
+  # Step to set up npm authentication and install dependencies
+  - name: 'node:18'
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        echo "//npm.pkg.github.com/:_authToken=$(cat /workspace/github_pat)" > ~/.npmrc
+        cat ~/.npmrc # Debug: Check .npmrc content
+        npm install
+
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        docker build \
+          --build-arg MONGO_URI=${_MONGO_URI} \
+          --build-arg PORT=${_PORT} \
+          --build-arg GITHUB_PAT="$(cat /workspace/github_pat)" \
+          -t asia-southeast1-docker.pkg.dev/$PROJECT_ID/screen-editor-api/api:$SHORT_SHA .
+
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/screen-editor-api/api:$SHORT_SHA'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" pre-kubernetes.yaml | \
+        sed "s/COMMIT_SHA/${SHORT_SHA}/g" > kubernetes.yaml
+
+  - name: "gcr.io/cloud-builders/gke-deploy"
+    args:
+      - run
+      - --filename=kubernetes.yaml
+      - --location=${_GKE_ZONE}
+      - --cluster=${_TARGET_ENV}-cluster
+      - --project=${_GCLOUD_PROJECT_ID}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

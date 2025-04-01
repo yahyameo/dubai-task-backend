@@ -15,4 +15,4 @@ This is the backend API built with NestJS for user authentication, including fea
 ### 📁 Clone the repo
 ```bash
 git clone https://github.com/yahyameo/dubai-task-backend.git
-cd backend
+cd dubai-task-backend
